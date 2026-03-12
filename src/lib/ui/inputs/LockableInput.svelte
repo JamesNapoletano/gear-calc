@@ -1,11 +1,11 @@
-<script>
+<script lang="ts">
   import NumberInput from './NumberInput.svelte'
 
   export let label = ''
-  export let value = 0
+  export let value: number = 0
   export let step = 0.1
-  export let min = undefined
-  export let max = undefined
+  export let min: number | undefined = undefined
+  export let max: number | undefined = undefined
   export let suffix = ''
   export let help = ''
   export let locked = false

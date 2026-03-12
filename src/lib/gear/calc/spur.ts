@@ -1,7 +1,7 @@
-import { defaultBaseInputs, defaultGearOutputs } from '../types.js'
-import { toMillimeters } from '../units.js'
+import { defaultBaseInputs, defaultGearOutputs, type GearOutputs, type SpurInputs } from '../types'
+import { toMillimeters } from '../units'
 
-const clampPositive = (value) => (Number.isFinite(value) && value > 0 ? value : NaN)
+const clampPositive = (value: number): number => (Number.isFinite(value) && value > 0 ? value : NaN)
 
 export const defaults = {
   ...defaultBaseInputs,
@@ -9,10 +9,10 @@ export const defaults = {
   teeth: 20,
   addendumCoeff: 1,
   dedendumCoeff: 1.157
-}
+} satisfies SpurInputs
 
-export const validate = (inputs) => {
-  const warnings = []
+export const validate = (inputs: SpurInputs): string[] => {
+  const warnings: string[] = []
   if (inputs.module <= 0) warnings.push('Module must be greater than 0.')
   if (inputs.teeth <= 0) warnings.push('Teeth count must be greater than 0.')
   if (inputs.addendumCoeff <= 0) warnings.push('Addendum coefficient must be greater than 0.')
@@ -32,7 +32,7 @@ export const validate = (inputs) => {
   return warnings
 }
 
-export const calculate = (rawInputs) => {
+export const calculate = (rawInputs: SpurInputs): GearOutputs => {
   const moduleMm = clampPositive(toMillimeters(rawInputs.module, rawInputs.unit))
   const teeth = clampPositive(rawInputs.teeth)
   const pressureAngleRad = (rawInputs.pressureAngleDeg * Math.PI) / 180

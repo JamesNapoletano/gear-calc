@@ -1,17 +1,22 @@
-import { defaultBaseInputs, defaultGearOutputs } from '../types.js'
-import { toMillimeters } from '../units.js'
+import {
+  defaultBaseInputs,
+  defaultGearOutputs,
+  type GearOutputs,
+  type HelicalInputs
+} from '../types'
+import { toMillimeters } from '../units'
 
-const clampPositive = (value) => (Number.isFinite(value) && value > 0 ? value : NaN)
+const clampPositive = (value: number): number => (Number.isFinite(value) && value > 0 ? value : NaN)
 
 export const defaults = {
   ...defaultBaseInputs,
   normalModule: 2,
   teeth: 20,
   helixAngleDeg: 15
-}
+} satisfies HelicalInputs
 
-export const validate = (inputs) => {
-  const warnings = []
+export const validate = (inputs: HelicalInputs): string[] => {
+  const warnings: string[] = []
   if (inputs.normalModule <= 0) warnings.push('Normal module must be greater than 0.')
   if (inputs.teeth <= 0) warnings.push('Teeth count must be greater than 0.')
   if (inputs.helixAngleDeg <= 0 || inputs.helixAngleDeg >= 45) {
@@ -20,7 +25,7 @@ export const validate = (inputs) => {
   return warnings
 }
 
-export const calculate = (rawInputs) => {
+export const calculate = (rawInputs: HelicalInputs): GearOutputs => {
   const normalModuleMm = clampPositive(toMillimeters(rawInputs.normalModule, rawInputs.unit))
   const teeth = clampPositive(rawInputs.teeth)
   const helixAngleRad = (rawInputs.helixAngleDeg * Math.PI) / 180
@@ -28,8 +33,8 @@ export const calculate = (rawInputs) => {
 
   const transverseModule = normalModuleMm / Math.cos(helixAngleRad)
   const transversePressureAngle = Math.atan(Math.tan(pressureAngleRad) / Math.cos(helixAngleRad))
-  const addendum = transverseModule * rawInputs.addendumCoeff
-  const dedendum = transverseModule * rawInputs.dedendumCoeff
+  const addendum = normalModuleMm * rawInputs.addendumCoeff
+  const dedendum = normalModuleMm * rawInputs.dedendumCoeff
 
   const pitchDiameter = transverseModule * teeth
   const outsideDiameter = pitchDiameter + 2 * addendum

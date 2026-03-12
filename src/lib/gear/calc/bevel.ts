@@ -1,7 +1,7 @@
-import { defaultBaseInputs, defaultGearOutputs } from '../types.js'
-import { toMillimeters } from '../units.js'
+import { defaultBaseInputs, defaultGearOutputs, type BevelInputs, type GearOutputs } from '../types'
+import { toMillimeters } from '../units'
 
-const clampPositive = (value) => (Number.isFinite(value) && value > 0 ? value : NaN)
+const clampPositive = (value: number): number => (Number.isFinite(value) && value > 0 ? value : NaN)
 
 export const defaults = {
   ...defaultBaseInputs,
@@ -9,10 +9,10 @@ export const defaults = {
   pinionTeeth: 20,
   gearTeeth: 40,
   shaftAngleDeg: 90
-}
+} satisfies BevelInputs
 
-export const validate = (inputs) => {
-  const warnings = []
+export const validate = (inputs: BevelInputs): string[] => {
+  const warnings: string[] = []
   if (inputs.module <= 0) warnings.push('Module must be greater than 0.')
   if (inputs.pinionTeeth <= 0 || inputs.gearTeeth <= 0) {
     warnings.push('Teeth counts must be greater than 0.')
@@ -24,9 +24,9 @@ export const validate = (inputs) => {
   return warnings
 }
 
-const toRadians = (deg) => (deg * Math.PI) / 180
+const toRadians = (deg: number): number => (deg * Math.PI) / 180
 
-export const calculate = (rawInputs) => {
+export const calculate = (rawInputs: BevelInputs): GearOutputs => {
   const moduleMm = clampPositive(toMillimeters(rawInputs.module, rawInputs.unit))
   const pinionTeeth = clampPositive(rawInputs.pinionTeeth)
   const gearTeeth = clampPositive(rawInputs.gearTeeth)

@@ -1,14 +1,15 @@
-<script>
+<script lang="ts">
   export let label = ''
-  export let value = 0
+  export let value: number = 0
   export let step = 0.1
-  export let min = undefined
-  export let max = undefined
+  export let min: number | undefined = undefined
+  export let max: number | undefined = undefined
   export let suffix = ''
   export let help = ''
 
-  const handleInput = (event) => {
-    const next = event.target.value
+  const handleInput = (event: Event): void => {
+    const target = event.target as HTMLInputElement
+    const next = target.value
     value = next === '' ? NaN : Number(next)
   }
 </script>
@@ -18,7 +19,7 @@
   <div class="control">
     <input
       type="number"
-      bind:value
+      value={Number.isFinite(value) ? value : ''}
       {step}
       {min}
       {max}

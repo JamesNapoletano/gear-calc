@@ -1,16 +1,30 @@
-<script>
-  import { formatNumber } from '../../gear/format.js'
-  import { fromMillimeters } from '../../gear/units.js'
-  import { buildGearOutline, scaleToViewBox } from '../../gear/visualize.js'
+<script lang="ts">
+  import { formatNumber } from '../../gear/format'
+  import { fromMillimeters } from '../../gear/units'
+  import { buildGearOutline, buildReferenceGeometry, linePath, scaleToViewBox } from '../../gear/visualize'
+  import type { GearType, LengthUnit } from '../../gear/types'
 
-  export let selectedGear
-  export let inputs
-  export let results
-  export let unit
+  type LooseInputs = Record<string, number | undefined>
+  type VisualResults = {
+    pitchDiameter: number
+    outsideDiameter: number
+    rootDiameter: number
+    baseCircle: number
+  }
 
-  const toRadians = (deg) => (deg * Math.PI) / 180
-  const polarToCartesian = (radius, angleRad) => [radius * Math.cos(angleRad), radius * Math.sin(angleRad)]
-  const arcPath = (radius, angleDeg) => {
+  export let selectedGear: { key: GearType } = { key: 'spur' }
+  export let inputs: LooseInputs = {}
+  export let results: VisualResults = {
+    pitchDiameter: NaN,
+    outsideDiameter: NaN,
+    rootDiameter: NaN,
+    baseCircle: NaN
+  }
+  export let unit: LengthUnit
+
+  const toRadians = (deg: number): number => (deg * Math.PI) / 180
+  const polarToCartesian = (radius: number, angleRad: number): [number, number] => [radius * Math.cos(angleRad), radius * Math.sin(angleRad)]
+  const arcPath = (radius: number, angleDeg: number): string => {
     if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(angleDeg) || angleDeg <= 0) {
       return ''
     }
@@ -22,7 +36,7 @@
     const largeArc = clamped > 180 ? 1 : 0
     return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY}`
   }
-  const lengthValue = (value, decimals = 2) =>
+  const lengthValue = (value: number, decimals = 2): string =>
     Number.isFinite(value) ? formatNumber(fromMillimeters(value, unit), decimals) : '—'
 
   $: isRing = selectedGear?.key === 'ring'
@@ -32,7 +46,8 @@
   $: outsideDiameter = results?.outsideDiameter
   $: rootDiameter = results?.rootDiameter
   $: baseCircle = results?.baseCircle
-  $: teethCount = isWorm ? inputs?.wheelTeeth : inputs?.teeth ?? inputs?.gearTeeth
+  $: rawTeethCount = isWorm ? inputs?.wheelTeeth : inputs?.teeth ?? inputs?.gearTeeth
+  $: teethCount = typeof rawTeethCount === 'number' ? rawTeethCount : NaN
   $: circularPitchAngle = Number.isFinite(teethCount) && teethCount > 0 ? 360 / teethCount : NaN
   $: circularPitchAngleLabel = Number.isFinite(circularPitchAngle)
     ? `${formatNumber(circularPitchAngle, 2)}°`
@@ -42,7 +57,7 @@
   $: rootRadius = Number.isFinite(rootDiameter) ? rootDiameter / 2 : NaN
   $: baseRadius = Number.isFinite(baseCircle) ? baseCircle / 2 : NaN
   $: maxRadius = Math.max(pitchRadius || 0, outsideRadius || 0, rootRadius || 0, baseRadius || 0)
-  $: wormWheelRadius = Number.isFinite(outsideRadius) ? outsideRadius / 2 : pitchRadius
+  $: wormWheelRadius = Number.isFinite(outsideRadius) ? outsideRadius : pitchRadius
   $: wormBodyRadius = Math.max(maxRadius * 0.28, 6)
   $: wormBodyLength = Math.max(maxRadius * 2.4, wormBodyRadius * 6)
   $: wormBodyX = -wormBodyLength * 0.7
@@ -54,56 +69,60 @@
   $: centerHoleRadius = Number.isFinite(holeBaseRadius)
     ? Math.max(holeBaseRadius * 0.18, maxRadius * 0.05)
     : maxRadius * 0.08
-  /** @type {'standard' | 'soft' | 'worm'} */
-  const profileMode = 'standard'
-  $: outlineProfile = isWorm ? 'worm' : isRing ? 'soft' : profileMode
-  $: outlinePath = buildGearOutline(
-    /** @type {any} */ ({
-      teeth: isWorm ? inputs?.wheelTeeth : inputs?.teeth ?? inputs?.gearTeeth,
-      pitchRadius,
-      outsideRadius,
-      rootRadius,
-      ring: isRing,
-      profile: outlineProfile
-    })
-  )
-  $: view = isWorm
-    ? {
-        size: Math.max(maxRadius * 3.4, 180),
-        viewBox: [
-          -Math.max(maxRadius * 3.4, 180) / 2,
-          -Math.max(maxRadius * 2.2, 120) / 2,
-          Math.max(maxRadius * 3.4, 180),
-          Math.max(maxRadius * 2.2, 120)
-        ].join(' ')
-      }
-    : scaleToViewBox(maxRadius, Math.max(maxRadius * 0.16, 24))
+  $: visualModeLabel = isRing ? 'Internal gear drafting view' : 'Involute drafting view'
+  $: outlinePath = buildGearOutline({
+    teeth: Number.isFinite(teethCount) ? teethCount : NaN,
+    pitchRadius,
+    outsideRadius,
+    rootRadius,
+    baseRadius,
+    ring: isRing
+  })
+  $: referenceGeometry = buildReferenceGeometry({
+    teeth: Number.isFinite(teethCount) ? teethCount : NaN,
+    pitchRadius,
+    outsideRadius,
+    rootRadius,
+    baseRadius
+  })
+  $: wormViewWidth = Math.max(maxRadius * 3.4, 180)
+  $: wormViewHeight = Math.max(maxRadius * 2.2, 120)
   $: legendItems = [
     {
       key: 'outside',
-      color: '#ea580c',
-      label: `Outside ⌀ ${lengthValue(outsideDiameter)} ${unit}`,
+      code: 'da',
+      label: `Outside`,
+      diameter: outsideDiameter,
       value: outsideRadius
     },
     {
       key: 'pitch',
-      color: '#4f46e5',
-      label: `Pitch ⌀ ${lengthValue(pitchDiameter)} ${unit}`,
+      code: 'd',
+      label: `Pitch`,
+      diameter: pitchDiameter,
       value: pitchRadius
     },
     {
       key: 'root',
-      color: '#059669',
-      label: `Root ⌀ ${lengthValue(rootDiameter)} ${unit}`,
+      code: 'df',
+      label: `Root`,
+      diameter: rootDiameter,
       value: rootRadius
     },
     {
       key: 'base',
-      color: '#0284c7',
-      label: `Base ⌀ ${lengthValue(baseCircle)} ${unit}`,
+      code: 'db',
+      label: `Base`,
+      diameter: baseCircle,
       value: baseRadius
     }
   ].filter((item) => Number.isFinite(item.value) && item.value > 0)
+  $: centerlineExtent = Math.max(maxRadius * 1.2, 70)
+  $: view = isWorm
+    ? {
+        viewBox: [-wormViewWidth / 2, -wormViewHeight / 2, wormViewWidth, wormViewHeight].join(' ')
+      }
+    : scaleToViewBox(maxRadius, Math.max(maxRadius * 0.22, 28))
   $: arcRadius = Number.isFinite(pitchRadius) ? pitchRadius : maxRadius * 0.7
   $: arcLabelX = arcRadius + Math.max(10, arcRadius * 0.08)
   $: arcLabelY = 0
@@ -118,25 +137,21 @@
       <span class="badge">Wheel projection</span>
     {:else if isBevel}
       <span class="badge">Bevel projection</span>
+    {:else}
+      <span class="badge">{visualModeLabel}</span>
     {/if}
   </div>
   {#if hasShape}
     <svg
       class="gear"
       viewBox={view.viewBox}
-      width={view.size}
-      height={view.size}
       aria-label="Gear visualizer"
       role="img"
     >
       <defs>
-        <filter id="gear-shadow" x="-25%" y="-25%" width="150%" height="150%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#94a3b8" flood-opacity="0.2" />
-        </filter>
-        <radialGradient id="gear-fill" cx="50%" cy="45%" r="65%">
-          <stop offset="0%" stop-color="#f8fafc" />
-          <stop offset="100%" stop-color="#e2e8f0" />
-        </radialGradient>
+        <pattern id="gear-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(30)">
+          <line x1="0" y1="0" x2="0" y2="6" class="hatch-line" />
+        </pattern>
         {#if isWorm}
           <clipPath id="worm-clip">
             <rect
@@ -151,6 +166,10 @@
         {/if}
       </defs>
       {#if isWorm}
+        <g class="centerlines">
+          <line class="centerline" x1={-centerlineExtent} y1="0" x2={centerlineExtent * 1.6} y2="0" />
+          <line class="centerline" x1={wormWheelX} y1={-centerlineExtent} x2={wormWheelX} y2={centerlineExtent} />
+        </g>
         <g class="worm-wheel" transform={`translate(${wormWheelX} 0)`}>
           {#if Number.isFinite(outsideRadius)}
             <circle r={outsideRadius} class="guide outside" />
@@ -161,13 +180,13 @@
           {#if Number.isFinite(rootRadius)}
             <circle r={rootRadius} class="guide root" />
           {/if}
-          <circle r={wormWheelRadius} class="worm-wheel-outline" filter="url(#gear-shadow)" />
+          <circle r={wormWheelRadius} class="worm-wheel-outline" />
           {#if pitchArcPath}
             <path d={pitchArcPath} class="pitch-arc" />
             <text x={arcLabelX} y={arcLabelY} class="pitch-arc-label">θp</text>
           {/if}
         </g>
-        <g class="worm" filter="url(#gear-shadow)">
+        <g class="worm">
           <rect
             x={wormBodyX}
             y={wormBodyY}
@@ -190,6 +209,10 @@
           <circle class="axis" r={wormBodyRadius * 0.18} />
         </g>
       {:else}
+        <g class="centerlines">
+          <line class="centerline" x1={-centerlineExtent} y1="0" x2={centerlineExtent} y2="0" />
+          <line class="centerline" x1="0" y1={-centerlineExtent} x2="0" y2={centerlineExtent} />
+        </g>
         <g class="guides">
           {#if Number.isFinite(baseRadius)}
             <circle r={baseRadius} class="guide base" />
@@ -204,7 +227,17 @@
             <circle r={outsideRadius} class="guide outside" />
           {/if}
         </g>
-        <path d={outlinePath} class="outline" filter="url(#gear-shadow)" />
+        {#if !isRing}
+          <g class="reference-lines">
+            {#each referenceGeometry.toothCenterLines as line}
+              <path d={linePath(line)} class="reference-line center" />
+            {/each}
+            {#each referenceGeometry.flankLines as line}
+              <path d={linePath(line)} class="reference-line flank" />
+            {/each}
+          </g>
+        {/if}
+        <path d={outlinePath} class="outline" />
         {#if pitchArcPath}
           <path d={pitchArcPath} class="pitch-arc" />
           <text x={arcLabelX} y={arcLabelY} class="pitch-arc-label">θp</text>
@@ -217,12 +250,12 @@
 
     </svg>
     <div class="legend">
-      <p>Diameter legend</p>
-      <ul>
+      <p>Dimension results</p>
+      <ul class="dimension-results">
         {#each legendItems as item}
           <li>
-            <span class="swatch" style={`background:${item.color}`}></span>
-            <span>{item.label}</span>
+            <span>{item.code} ({item.label})</span>
+            <strong>⌀{lengthValue(item.diameter)} {unit}</strong>
           </li>
         {/each}
       </ul>
@@ -241,12 +274,12 @@
 <style>
   .visualizer {
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     border-radius: 16px;
     padding: 1.25rem;
     display: grid;
     gap: 1rem;
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    box-shadow: none;
   }
   .header {
     display: flex;
@@ -261,9 +294,9 @@
   }
   .badge {
     font-size: 0.7rem;
-    background: #f1f5f9;
+    background: #f8fafc;
     color: #0f172a;
-    border: 1px solid #cbd5f5;
+    border: 1px solid #cbd5e1;
     padding: 0.2rem 0.5rem;
     border-radius: 999px;
     text-transform: uppercase;
@@ -273,39 +306,67 @@
     width: 100%;
     height: auto;
     display: block;
-    background: radial-gradient(circle at center, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0));
-    border-radius: 18px;
+    background: #ffffff;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+  }
+  .centerline {
+    stroke: #64748b;
+    stroke-width: 0.9;
+    stroke-dasharray: 7 4 2 4;
   }
   .guide {
     fill: none;
-    stroke-width: 1.4;
+    stroke-width: 1;
     stroke-linecap: round;
   }
   .guide.base {
-    stroke: #0284c7;
-    stroke-dasharray: 4 4;
+    stroke: #6b7280;
+    stroke-dasharray: 4 3;
   }
   .guide.root {
-    stroke: #059669;
-    stroke-dasharray: 8 4;
+    stroke: #6b7280;
+    stroke-dasharray: 6 4;
   }
   .guide.pitch {
-    stroke: #4f46e5;
+    stroke: #374151;
     stroke-dasharray: 2 3;
   }
   .guide.outside {
-    stroke: #ea580c;
-    stroke-dasharray: 10 6;
+    stroke: #4b5563;
+    stroke-dasharray: 10 4;
   }
   .outline {
-    fill: url(#gear-fill);
+    fill: url(#gear-hatch);
     stroke: #0f172a;
-    stroke-width: 1.4;
+    stroke-width: 1.6;
+    fill-rule: evenodd;
+  }
+  .hatch-line {
+    stroke: #d1d5db;
+    stroke-width: 0.9;
+  }
+  .reference-lines {
+    opacity: 0.42;
+  }
+  .reference-line {
+    fill: none;
+    stroke-linecap: round;
+  }
+  .reference-line.center {
+    stroke: rgba(15, 23, 42, 0.24);
+    stroke-width: 0.9;
+    stroke-dasharray: 2 3;
+  }
+  .reference-line.flank {
+    stroke: rgba(15, 23, 42, 0.22);
+    stroke-width: 0.7;
+    stroke-dasharray: 4 6;
   }
   .worm-wheel-outline {
-    fill: url(#gear-fill);
+    fill: url(#gear-hatch);
     stroke: #0f172a;
-    stroke-width: 1.4;
+    stroke-width: 1.6;
   }
   .center-hole {
     fill: #ffffff;
@@ -323,15 +384,16 @@
     stroke-dasharray: 3 4;
   }
   .pitch-arc-label {
-    font-size: 10px;
+    font-size: 9px;
     fill: #0f172a;
     font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
   .worm {
     transform: translateY(0);
   }
   .worm-shell {
-    fill: #e2e8f0;
+    fill: #f8fafc;
     stroke: #0f172a;
     stroke-width: 1.2;
   }
@@ -340,10 +402,10 @@
     stroke-width: 1;
   }
   .legend {
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     border-radius: 12px;
     padding: 0.75rem 1rem;
-    background: #f8fafc;
+    background: #ffffff;
   }
   .legend p {
     margin: 0 0 0.5rem;
@@ -352,41 +414,42 @@
     letter-spacing: 0.08em;
     color: #475569;
   }
-  .legend ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.4rem;
-  }
-  .legend li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    color: #0f172a;
-    font-weight: 600;
-  }
-  .legend .swatch {
-    width: 14px;
-    height: 14px;
-    border-radius: 999px;
-    display: inline-block;
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25);
-  }
   .legend-meta {
-    margin-top: 0.75rem;
-    padding-top: 0.65rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
     border-top: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: #0f172a;
     font-weight: 600;
   }
   .legend-meta span {
     font-weight: 500;
     color: #475569;
+  }
+  .dimension-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .dimension-results li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 0.2rem;
+  }
+  .dimension-results li span {
+    color: #475569;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  }
+  .dimension-results li strong {
+    color: #0f172a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   }
   .placeholder {
     padding: 1.5rem;

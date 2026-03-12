@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
   export let title = ''
-  export let items = []
+  export let items: Array<{ label: string; value: string }> = []
 </script>
 
 <section class="card">

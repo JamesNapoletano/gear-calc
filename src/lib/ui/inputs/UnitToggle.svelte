@@ -1,5 +1,7 @@
-<script>
-  export let unit = 'mm'
+<script lang="ts">
+  import type { LengthUnit } from '../../gear/types'
+
+  export let unit: LengthUnit = 'mm'
 </script>
 
 <div class="toggle">
