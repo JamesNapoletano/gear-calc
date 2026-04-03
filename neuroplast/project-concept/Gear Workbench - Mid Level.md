@@ -26,7 +26,7 @@ Define the page architecture, interaction model, and quality expectations for th
   - Editable result cards with reversible calculations where supported.
   - Derived values card for ratio/center distance/base circle.
 - **Visualization Region**
-  - Drafting-style SVG with circles, outlines, centerlines, and legend.
+  - Clean technical 2.5D SVG with gear-family-specific shapes, lighter readable edge treatment, worm side-profile mesh view, and compact dimensional legend.
 
 ## Navigation Model
 - In-page interaction only (no route transitions).

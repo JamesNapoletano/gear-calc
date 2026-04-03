@@ -212,37 +212,41 @@ const buildSpurOrHelicalOutline = ({ teeth, pitchRadius, outsideRadius, rootRadi
   return toPath(points)
 }
 
-const buildRingOutline = ({ teeth, pitchRadius, outsideRadius, rootRadius, baseRadius }: OutlineInput): string => {
-  const profile = buildToothProfile({
-    teeth,
-    pitchRadius,
-    outsideRadius,
-    rootRadius,
-    baseRadius
-  })
-  if (!profile) return ''
+const buildRingOutline = ({ teeth, pitchRadius, outsideRadius, rootRadius }: OutlineInput): string => {
+  if (!isFinitePositive(teeth) || !isFinitePositive(pitchRadius) || !isFinitePositive(outsideRadius) || !isFinitePositive(rootRadius)) {
+    return ''
+  }
 
-  const z = profile.teeth
-  const tau = profile.toothPitchAngle
+  const z = Math.max(8, Math.round(teeth))
+  const tau = (Math.PI * 2) / z
+  const toothTipRadius = Math.min(outsideRadius, pitchRadius * 0.985)
+  const toothRootRadius = Math.max(rootRadius, pitchRadius * 1.04)
+  const ringOuterRadius = Math.max(toothRootRadius * 1.12, pitchRadius * 1.2)
+  const tipSpan = tau * 0.38
+  const rootSpan = tau * 0.72
+  const tipSteps = 6
+  const rootSteps = 6
   const innerPoints: Point[] = []
 
   for (let i = 0; i < z; i += 1) {
-    const rot = i * tau
-    const right = profile.rightFlank.map((p) => rotate(p, rot))
-    const left = profile.leftFlank.map((p) => rotate(p, rot))
-    const tip = profile.tipArc.map((p) => rotate(p, rot))
-    const root = profile.rootArc.map((p) => rotate(p, rot))
+    const center = i * tau
+    const leftRootAngle = center - rootSpan / 2
+    const leftTipAngle = center - tipSpan / 2
+    const rightTipAngle = center + tipSpan / 2
+    const rightRootAngle = center + rootSpan / 2
+    const nextLeftRootAngle = center + tau - rootSpan / 2
+
     if (i === 0) {
-      innerPoints.push(right[0])
+      innerPoints.push(polarToCartesian(toothRootRadius, leftRootAngle))
     }
-    innerPoints.push(...right)
-    innerPoints.push(...tip)
-    innerPoints.push(...left.reverse())
-    innerPoints.push(...root)
+
+    innerPoints.push(polarToCartesian(toothTipRadius, leftTipAngle))
+    appendArcPoints(innerPoints, toothTipRadius, leftTipAngle, rightTipAngle, tipSteps)
+    innerPoints.push(polarToCartesian(toothRootRadius, rightRootAngle))
+    appendArcPoints(innerPoints, toothRootRadius, rightRootAngle, nextLeftRootAngle, rootSteps)
   }
 
   const innerPath = toPath(innerPoints)
-  const ringOuterRadius = Math.max(rootRadius * 1.1, pitchRadius * 1.12)
   const outerPath = circlePath(ringOuterRadius)
   return `${outerPath} ${innerPath}`.trim()
 }
@@ -319,8 +323,8 @@ export const buildGearOutline = ({
     return buildRingOutline({
       teeth,
       pitchRadius,
-      outsideRadius: Math.max(root, outer),
-      rootRadius: Math.max(root, outer),
+      outsideRadius: Math.min(outer, pitchRadius * 0.995),
+      rootRadius: Math.max(root, pitchRadius * 1.02),
       baseRadius: Math.min(base, pitchRadius)
     })
   }

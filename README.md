@@ -1,6 +1,6 @@
 # Gear Calc
 
-Gear Calc is a browser-based gear geometry calculator built with **Svelte + Vite**. It supports multiple gear types, unit conversion (`mm`/`in`), editable computed dimensions, and a CAD-style 2D visualizer.
+Gear Calc is a browser-based gear geometry calculator built with **Svelte + Vite**. It supports multiple gear types, unit conversion (`mm`/`in`), editable computed dimensions, and a clean technical 2.5D visualizer.
 
 ## Features
 
@@ -14,7 +14,7 @@ Gear Calc is a browser-based gear geometry calculator built with **Svelte + Vite
 - **Unit toggle** between millimeters and inches.
 - **DP mode** (Diametral Pitch) for inch workflows on supported gears.
 - Built-in warnings for out-of-range and non-typical input combinations.
-- 2D involute-style visualizer with reference circles and drafting-oriented overlays.
+- Clean technical 2.5D visualizer with gear-family-specific rendering for spur, helical, ring, worm, and bevel gears, including a side-profile worm-and-wheel view and subtler tooth-readability cues.
 - Dark, high-contrast technical UI tuned for extended engineering sessions.
 
 ## Tech Stack
@@ -89,14 +89,14 @@ src/
 - **No data persistence**: inputs/results are not saved between refreshes.
 - **No CAD export** currently (DXF/STEP/etc. are not generated).
 - **No guaranteed standards compliance** is enforced automatically (AGMA/ISO checks are not built in).
-- **Testing baseline is minimal** in the current repo (no existing test files at the time of writing).
+- **Visualizer test coverage is still minimal** and currently focuses on shared outline-generation contracts.
 
 ## Roadmap
 
 - Add unit and integration tests for per-gear calculation modules.
 - Add export options for geometry/output data (e.g., CSV/JSON, potential CAD-friendly formats).
 - Improve standards guidance with optional AGMA/ISO-oriented validation hints.
-- Expand visualizer fidelity for additional gear-specific geometry details.
+- Expand visualizer fidelity for more manufacturing-specific geometry details and optional technical overlays.
 - Add optional save/share workflows for common gear setups.
 
 For architecture details, see [ARCHITECTURE.md](./ARCHITECTURE.md).

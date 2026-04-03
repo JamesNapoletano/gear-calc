@@ -5,14 +5,14 @@
 Provide a single, professional-grade engineering workbench for rapid gear geometry exploration, refinement, and visual validation.
 
 ## Description
-The user lands on one focused page where they select gear type, tune inputs, review editable outputs, and inspect a drafting-style visualizer. The page prioritizes precise numeric interaction, immediate calculation feedback, and an intentionally dark, instrument-like visual identity for extended technical use.
+The user lands on one focused page where they select gear type, tune inputs, review editable outputs, and inspect a clean technical 2.5D visualizer. The page prioritizes precise numeric interaction, immediate calculation feedback, and an intentionally dark, instrument-like visual identity for extended technical use.
 
 ## Features
 - Multi-gear workflows: spur, helical, ring/internal, worm, bevel.
 - Unit switching between metric and imperial with DP mode where supported.
 - Input locking model for controlled back-solving and result editing.
 - Real-time validation/warnings for non-typical geometry combinations.
-- Drafting-oriented 2D visualizer with reference circles and overlays.
+- Clean technical 2.5D visualizer with family-specific gear rendering, subdued technical framing, and a side-profile worm-and-wheel representation.
 - “Dark technical instrument” presentation layer with high contrast and minimal visual noise.
 
 ## Forms / Inputs
