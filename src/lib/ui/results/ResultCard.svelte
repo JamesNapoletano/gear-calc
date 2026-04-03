@@ -17,16 +17,16 @@
 
 <style>
   .card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-md);
     padding: 1.25rem;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.25);
   }
   h3 {
     margin: 0 0 1rem;
     font-size: 1rem;
-    color: #111827;
+    color: var(--text-1);
   }
   dl {
     margin: 0;
@@ -39,12 +39,14 @@
     gap: 1rem;
   }
   dt {
-    color: #6b7280;
+    color: var(--text-2);
     font-size: 0.85rem;
   }
   dd {
     margin: 0;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-1);
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
 </style>

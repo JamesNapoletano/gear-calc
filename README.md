@@ -15,6 +15,7 @@ Gear Calc is a browser-based gear geometry calculator built with **Svelte + Vite
 - **DP mode** (Diametral Pitch) for inch workflows on supported gears.
 - Built-in warnings for out-of-range and non-typical input combinations.
 - 2D involute-style visualizer with reference circles and drafting-oriented overlays.
+- Dark, high-contrast technical UI tuned for extended engineering sessions.
 
 ## Tech Stack
 

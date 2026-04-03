@@ -28,16 +28,17 @@
     text-transform: uppercase;
     letter-spacing: 0.2em;
     font-size: 0.7rem;
-    color: #6366f1;
+    color: var(--accent-strong);
     margin: 0 0 0.5rem;
   }
   h1 {
     font-size: 2.4rem;
     margin: 0 0 0.5rem;
+    color: var(--text-1);
   }
   .subtitle {
     margin: 0;
-    color: #64748b;
+    color: var(--text-2);
     max-width: 550px;
   }
 </style>

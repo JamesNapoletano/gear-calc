@@ -233,25 +233,27 @@
     gap: 2rem;
   }
   .panel {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 20px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
+    box-shadow: 0 18px 32px rgba(2, 6, 23, 0.38);
   }
   .panel h2 {
     margin-top: 0;
     font-size: 1.2rem;
+    color: var(--text-1);
   }
   .results {
     display: grid;
     gap: 1.25rem;
   }
   .warnings {
-    background: #fff7ed;
-    border: 1px solid #fdba74;
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
     padding: 0.75rem 1rem;
-    border-radius: 12px;
-    color: #c2410c;
+    border-radius: var(--radius-md);
+    color: var(--warning-text);
     font-size: 0.85rem;
   }
   .warnings p {

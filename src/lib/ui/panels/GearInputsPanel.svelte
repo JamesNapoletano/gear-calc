@@ -161,7 +161,7 @@
   }
 
   .advanced {
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border-1);
     padding-top: 1rem;
     display: grid;
     gap: 0.75rem;
@@ -170,6 +170,6 @@
   .advanced h3 {
     margin: 0;
     font-size: 0.95rem;
-    color: #475569;
+    color: var(--text-2);
   }
 </style>

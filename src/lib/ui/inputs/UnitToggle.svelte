@@ -24,7 +24,8 @@
 <style>
   .toggle {
     display: inline-flex;
-    background: #f3f4f6;
+    background: var(--surface-2);
+    border: 1px solid var(--border-1);
     border-radius: 999px;
     padding: 0.25rem;
     gap: 0.25rem;
@@ -35,11 +36,15 @@
     padding: 0.35rem 0.9rem;
     border-radius: 999px;
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--text-3);
     cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+  button:hover {
+    color: var(--text-1);
   }
   button.active {
-    background: #111827;
-    color: #fff;
+    background: rgba(124, 140, 255, 0.22);
+    color: var(--text-1);
   }
 </style>

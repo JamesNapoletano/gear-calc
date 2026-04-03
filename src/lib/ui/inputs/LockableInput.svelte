@@ -29,9 +29,9 @@
     align-items: center;
     gap: 0.4rem;
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--text-3);
   }
   .lock input {
-    accent-color: #4f46e5;
+    accent-color: var(--accent);
   }
 </style>

@@ -2,12 +2,35 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #0f172a;
-  background-color: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --bg-0: #05070d;
+  --bg-1: #0b0f1a;
+  --bg-2: #0f1628;
+  --surface-1: #111a2e;
+  --surface-2: #151f36;
+  --surface-3: #1a2740;
+  --border-1: #273553;
+  --border-2: #33466d;
+
+  --text-1: #e5ecfb;
+  --text-2: #b7c6e6;
+  --text-3: #8ea0c7;
+
+  --accent: #7c8cff;
+  --accent-strong: #9aa8ff;
+  --focus: #89a0ff;
+
+  --warning-bg: #2a1703;
+  --warning-border: #8f4f16;
+  --warning-text: #ffd8ad;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 }
 
 * {
@@ -17,7 +40,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: var(--text-1);
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(124, 140, 255, 0.2), transparent 60%),
+    radial-gradient(800px 600px at 100% 0%, rgba(66, 80, 140, 0.22), transparent 55%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 45%, var(--bg-2) 100%);
 }
 
 a {
@@ -29,4 +56,16 @@ a {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

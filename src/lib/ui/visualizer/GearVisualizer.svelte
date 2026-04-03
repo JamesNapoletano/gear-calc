@@ -273,13 +273,13 @@
 
 <style>
   .visualizer {
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-md);
     padding: 1.25rem;
     display: grid;
     gap: 1rem;
-    box-shadow: none;
+    box-shadow: 0 12px 22px rgba(2, 6, 23, 0.25);
   }
   .header {
     display: flex;
@@ -290,13 +290,13 @@
   h3 {
     margin: 0;
     font-size: 1rem;
-    color: #111827;
+    color: var(--text-1);
   }
   .badge {
     font-size: 0.7rem;
-    background: #f8fafc;
-    color: #0f172a;
-    border: 1px solid #cbd5e1;
+    background: rgba(124, 140, 255, 0.16);
+    color: var(--text-1);
+    border: 1px solid var(--border-2);
     padding: 0.2rem 0.5rem;
     border-radius: 999px;
     text-transform: uppercase;
@@ -306,12 +306,12 @@
     width: 100%;
     height: auto;
     display: block;
-    background: #ffffff;
+    background: #0a1120;
     border-radius: 4px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-1);
   }
   .centerline {
-    stroke: #64748b;
+    stroke: #8395ba;
     stroke-width: 0.9;
     stroke-dasharray: 7 4 2 4;
   }
@@ -321,29 +321,29 @@
     stroke-linecap: round;
   }
   .guide.base {
-    stroke: #6b7280;
+    stroke: #7f93bc;
     stroke-dasharray: 4 3;
   }
   .guide.root {
-    stroke: #6b7280;
+    stroke: #7f93bc;
     stroke-dasharray: 6 4;
   }
   .guide.pitch {
-    stroke: #374151;
+    stroke: #adc0ea;
     stroke-dasharray: 2 3;
   }
   .guide.outside {
-    stroke: #4b5563;
+    stroke: #93a9d7;
     stroke-dasharray: 10 4;
   }
   .outline {
     fill: url(#gear-hatch);
-    stroke: #0f172a;
+    stroke: #d9e4ff;
     stroke-width: 1.6;
     fill-rule: evenodd;
   }
   .hatch-line {
-    stroke: #d1d5db;
+    stroke: rgba(180, 197, 232, 0.5);
     stroke-width: 0.9;
   }
   .reference-lines {
@@ -354,38 +354,38 @@
     stroke-linecap: round;
   }
   .reference-line.center {
-    stroke: rgba(15, 23, 42, 0.24);
+    stroke: rgba(203, 218, 249, 0.22);
     stroke-width: 0.9;
     stroke-dasharray: 2 3;
   }
   .reference-line.flank {
-    stroke: rgba(15, 23, 42, 0.22);
+    stroke: rgba(203, 218, 249, 0.18);
     stroke-width: 0.7;
     stroke-dasharray: 4 6;
   }
   .worm-wheel-outline {
     fill: url(#gear-hatch);
-    stroke: #0f172a;
+    stroke: #d9e4ff;
     stroke-width: 1.6;
   }
   .center-hole {
-    fill: #ffffff;
-    stroke: #0f172a;
+    fill: #0a1120;
+    stroke: #d9e4ff;
     stroke-width: 1.4;
   }
   .axis {
-    fill: #0f172a;
+    fill: #d9e4ff;
     opacity: 0.75;
   }
   .pitch-arc {
     fill: none;
-    stroke: #0f172a;
+    stroke: #e5ecfb;
     stroke-width: 1.1;
     stroke-dasharray: 3 4;
   }
   .pitch-arc-label {
     font-size: 9px;
-    fill: #0f172a;
+    fill: #e5ecfb;
     font-weight: 600;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
@@ -393,40 +393,41 @@
     transform: translateY(0);
   }
   .worm-shell {
-    fill: #f8fafc;
-    stroke: #0f172a;
+    fill: #1a2740;
+    stroke: #d9e4ff;
     stroke-width: 1.2;
   }
   .worm-grooves line {
-    stroke: #94a3b8;
+    stroke: #9db0dc;
     stroke-width: 1;
   }
   .legend {
-    border: 1px solid #cbd5e1;
-    border-radius: 12px;
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;
-    background: #ffffff;
+    background: var(--surface-1);
   }
   .legend p {
     margin: 0 0 0.5rem;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #475569;
+    color: var(--text-3);
   }
   .legend-meta {
     margin-top: 0.35rem;
     padding-top: 0.35rem;
     border-top: 1px solid #e2e8f0;
+    border-top-color: var(--border-1);
     display: flex;
     justify-content: space-between;
     font-size: 0.76rem;
-    color: #0f172a;
+    color: var(--text-1);
     font-weight: 600;
   }
   .legend-meta span {
     font-weight: 500;
-    color: #475569;
+    color: var(--text-3);
   }
   .dimension-results {
     list-style: none;
@@ -440,24 +441,25 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.78rem;
-    border-bottom: 1px dashed #e2e8f0;
+    border-bottom: 1px dashed var(--border-1);
     padding-bottom: 0.2rem;
   }
   .dimension-results li span {
-    color: #475569;
+    color: var(--text-2);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
   .dimension-results li strong {
-    color: #0f172a;
+    color: var(--text-1);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    font-variant-numeric: tabular-nums;
   }
   .placeholder {
     padding: 1.5rem;
-    background: #f8fafc;
-    border-radius: 12px;
-    border: 1px dashed #e2e8f0;
+    background: rgba(17, 26, 46, 0.6);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-1);
     text-align: center;
-    color: #64748b;
+    color: var(--text-3);
     font-size: 0.9rem;
   }
 </style>

@@ -30,17 +30,22 @@
     gap: 0.75rem;
   }
   .selector button {
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
+    border: 1px solid var(--border-1);
+    background: var(--surface-1);
     padding: 0.5rem 1.2rem;
     border-radius: 999px;
     cursor: pointer;
-    color: #475569;
+    color: var(--text-2);
     font-weight: 600;
+    transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+  }
+  .selector button:hover {
+    border-color: var(--border-2);
+    color: var(--text-1);
   }
   .selector button.active {
-    background: #111827;
-    color: #ffffff;
-    border-color: #111827;
+    background: rgba(124, 140, 255, 0.2);
+    color: var(--text-1);
+    border-color: var(--accent);
   }
 </style>

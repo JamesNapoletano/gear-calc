@@ -41,16 +41,21 @@
   }
   .label {
     font-size: 0.9rem;
-    color: #4b5563;
+    color: var(--text-2);
   }
   .control {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-sm);
     padding: 0.5rem 0.75rem;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .control:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(124, 140, 255, 0.2);
   }
   input {
     border: none;
@@ -58,13 +63,14 @@
     outline: none;
     width: 100%;
     font-size: 1rem;
+    color: var(--text-1);
   }
   .suffix {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--text-3);
   }
   .help {
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--text-3);
   }
 </style>

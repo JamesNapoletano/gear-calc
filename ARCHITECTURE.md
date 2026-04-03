@@ -3,20 +3,23 @@
 ## Overview
 Gear Calc is a lightweight, client-only Svelte application for calculating
 gear geometry across multiple gear types (spur, helical, ring/internal, worm,
-and bevel). It provides a simple UI with configurable tooth proportions and a
-unit toggle (mm/in). All calculations run in the browser; no backend or
-persistent storage is used.
+and bevel). It provides a single-page engineering workbench with configurable
+tooth proportions, unit toggle (mm/in), editable result back-solving, and a
+drafting-style visualizer. The current presentation system is dark-first to
+support prolonged technical usage. All calculations run in the browser; no
+backend or persistent storage is used.
 
 ## Goals
 - Fast, intuitive, single-page experience
 - Deterministic, CAD-friendly outputs
 - Clear separation between UI and calculation logic
 - Extensible gear type registry
+- High-contrast, low-noise interface for precision workflows
 
 ## Technology Stack
 - Svelte + Vite (frontend only)
 - TypeScript for calculation modules
-- Plain CSS for lightweight styling
+- Plain CSS with tokenized dark theme variables
 
 ## Architecture Principles
 - **Pure calculations:** Each gear calculator is a pure function with
@@ -33,6 +36,7 @@ persistent storage is used.
 ### 1) UI Layer
 - Components for inputs, unit toggle, and results
 - Gear type selector drives dynamic input panels
+- Visual language uses shared CSS tokens for dark surfaces, borders, and text hierarchy
 
 ### 2) Domain Layer
 - Shared types for inputs and results
@@ -42,6 +46,7 @@ persistent storage is used.
 ### 3) Utility Layer
 - Unit conversion (mm/in)
 - Formatting helpers (precision, labels)
+- Visualizer geometry path generation for drafting-oriented SVG output
 
 ## Key Modules
 
@@ -61,8 +66,12 @@ src/
         worm.ts
         bevel.ts
     ui/
+      gear/
       inputs/
+      layout/
+      panels/
       results/
+      visualizer/
 ```
 
 ## Data Flow

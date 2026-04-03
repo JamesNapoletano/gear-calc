@@ -89,13 +89,14 @@
 
 <style>
   .editable {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-md);
     padding: 1.25rem;
   }
   .editable h3 {
     margin: 0 0 1rem;
+    color: var(--text-1);
   }
   .editable-list {
     display: grid;
@@ -105,21 +106,24 @@
     display: grid;
     gap: 0.35rem;
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--text-2);
   }
   .editable input {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-sm);
     padding: 0.45rem 0.6rem;
     font-size: 0.95rem;
+    background: var(--surface-1);
+    color: var(--text-1);
   }
   .editable input:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
+    background: rgba(17, 26, 46, 0.75);
+    color: var(--text-3);
+    border-color: rgba(51, 70, 109, 0.65);
   }
   .editable .unit {
     margin: 0.75rem 0 0;
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-3);
   }
 </style>
