@@ -150,8 +150,8 @@
         selectedGearKey={selectedGear.key}
         {unit}
         outputUnit={outputUnit()}
-        {inputs}
-        {locks}
+        bind:inputs
+        bind:locks
         {isSpurOrRing}
         {moduleInputMode}
         supportsDpMode={dpSupported}

@@ -26,128 +26,47 @@
 
   const toRadians = (deg: number): number => (deg * Math.PI) / 180
   const polarToCartesian = (radius: number, angleRad: number): [number, number] => [radius * Math.cos(angleRad), radius * Math.sin(angleRad)]
-  const buildHelicalFaceLines = (radius: number, angleDeg: number, count: number): string[] => {
-    if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(angleDeg) || count <= 0) return []
-    const slant = Math.max(8, Math.min(radius * 0.22, 24)) * Math.sin(toRadians(angleDeg))
-    return Array.from({ length: count }, (_, index) => {
-      const t = count === 1 ? 0.5 : index / (count - 1)
-      const y = -radius * 0.78 + t * radius * 1.56
-      const x1 = -radius * 0.86 + (index % 2 === 0 ? 0 : radius * 0.04)
-      const x2 = radius * 0.86 + slant
-      return `M ${x1} ${y} C ${x1 + radius * 0.35} ${y - slant * 0.45} ${x2 - radius * 0.35} ${y - slant * 0.55} ${x2} ${y - slant}`
+
+  // Parallel hatch lines at the helix angle, clipped to the gear outline — the
+  // standard way a helical gear is hinted at on a flat technical drawing.
+  const buildHelixHatch = (radius: number, angleDeg: number, count: number): string[] => {
+    if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(angleDeg)) return []
+    const n = Math.max(5, count)
+    const clamped = Math.max(-60, Math.min(60, angleDeg))
+    const dx = radius * Math.tan(toRadians(clamped))
+    const span = radius * 2.3
+    return Array.from({ length: n }, (_, i) => {
+      const x = -radius * 1.15 + ((i + 0.5) / n) * span
+      return `M ${x - dx} ${-radius} L ${x + dx} ${radius}`
     })
   }
 
-  const buildToothValleyLines = (radius: number, count: number, helical = false): string[] => {
-    if (!Number.isFinite(radius) || radius <= 0 || count <= 0) return []
-    const step = count > 48 ? 2 : 1
-    const lineCount = Math.max(8, Math.min(count, 48))
-    return Array.from({ length: lineCount }, (_, index) => {
-      const valleyIndex = index * step
-      const angle = ((valleyIndex + 0.5) / Math.max(count, 1)) * Math.PI * 2
-      const outer = polarToCartesian(radius * 0.985, angle)
-      const inner = polarToCartesian(radius * (helical ? 0.91 : 0.87), angle)
-      return `M ${inner[0]} ${inner[1]} L ${outer[0]} ${outer[1]}`
-    })
-  }
-
-  const buildWormThreadPath = (x: number, y: number, length: number, radius: number, starts: number): string => {
-    if (!Number.isFinite(length) || !Number.isFinite(radius) || length <= 0 || radius <= 0) return ''
-    const startCount = Number.isFinite(starts) ? Math.max(1, Math.round(starts)) : 1
-    const loops = Math.max(5, Math.round(length / (radius * 0.9)))
-    const laneGap = (radius * 2) / startCount
-    const parts: string[] = []
-
-    for (let lane = 0; lane < startCount; lane += 1) {
-      const baseY = y + laneGap * (lane + 0.5)
-      let currentX = x
-      parts.push(`M ${currentX} ${baseY}`)
-      for (let loop = 0; loop < loops; loop += 1) {
-        const seg = length / loops
-        const cp1x = currentX + seg * 0.32
-        const cp2x = currentX + seg * 0.68
-        const nextX = currentX + seg
-        const crest = radius * 0.95
-        parts.push(`C ${cp1x} ${baseY - crest} ${cp2x} ${baseY + crest} ${nextX} ${baseY}`)
-        currentX = nextX
-      }
-    }
-
-    return parts.join(' ')
-  }
-
-  const buildWormHelixSidePath = (x: number, y: number, length: number, radius: number, starts: number): string[] => {
+  // Worm thread shown as slanted crest lines across the cylinder — the standard
+  // simplified screw-thread convention. Clipped to the cylinder body when drawn.
+  const buildWormThreadLines = (x: number, length: number, radius: number, starts: number): string[] => {
     if (!Number.isFinite(length) || !Number.isFinite(radius) || length <= 0 || radius <= 0) return []
     const startCount = Number.isFinite(starts) ? Math.max(1, Math.round(starts)) : 1
-    const bandHeight = (radius * 2) / (startCount + 1)
-    const loops = Math.max(4, Math.round(length / (radius * 1.25)))
-
-    return Array.from({ length: startCount }, (_, lane) => {
-      const midY = y + bandHeight * (lane + 1)
-      let currentX = x
-      const parts = [`M ${currentX} ${midY}`]
-
-      for (let loop = 0; loop < loops; loop += 1) {
-        const seg = length / loops
-        const nextX = currentX + seg
-        const crest = Math.min(radius * 0.88, bandHeight * 0.42)
-        const cp1x = currentX + seg * 0.28
-        const cp2x = currentX + seg * 0.72
-        parts.push(`C ${cp1x} ${midY - crest} ${cp2x} ${midY + crest} ${nextX} ${midY}`)
-        currentX = nextX
-      }
-
-      return parts.join(' ')
-    })
-  }
-
-  const buildWormWheelRimTicks = (radius: number, count: number): string[] => {
-    if (!Number.isFinite(radius) || radius <= 0 || count <= 0) return []
-    const tickCount = Math.max(10, Math.min(count, 36))
-    const rx = radius * 0.82
-    const ry = radius
-    return Array.from({ length: tickCount }, (_, index) => {
-      const angle = -1.08 + (index / Math.max(1, tickCount - 1)) * 2.16
-      const cos = Math.cos(angle)
-      const sin = Math.sin(angle)
-      const innerX = cos * (rx * 0.84)
-      const innerY = sin * (ry * 0.84)
-      const outerX = cos * rx
-      const outerY = sin * ry
-      return `M ${innerX} ${innerY} L ${outerX} ${outerY}`
-    })
-  }
-
-  const buildWormContactPath = (wormRightX: number, wheelLeftX: number, offsetY: number): string => {
-    if (!Number.isFinite(wormRightX) || !Number.isFinite(wheelLeftX)) return ''
-    const midX = (wormRightX + wheelLeftX) / 2
-    return `M ${wormRightX} ${offsetY - 8} C ${midX} ${offsetY - 18} ${midX} ${offsetY + 18} ${wheelLeftX} ${offsetY + 8}`
+    const pitchCount = Math.max(6, Math.round(length / (radius * 0.95)))
+    const seg = length / pitchCount
+    const slant = seg * 0.42 * Math.min(startCount, 3)
+    const lines: string[] = []
+    for (let i = -1; i <= pitchCount + 1; i += 1) {
+      const lx = x + i * seg
+      lines.push(`M ${lx - slant / 2} ${-radius} L ${lx + slant / 2} ${radius}`)
+    }
+    return lines
   }
 
   const svgUid = Math.random().toString(36).slice(2, 10)
   const makeSvgId = (name: string): string => `gearviz-${svgUid}-${name}`
 
-  const buildBevelSidePath = (frontRadius: number, backRadius: number, depth: number): string => {
-    if (!Number.isFinite(frontRadius) || frontRadius <= 0 || !Number.isFinite(backRadius) || backRadius <= 0 || !Number.isFinite(depth) || depth <= 0) return ''
-    const frontTop = polarToCartesian(frontRadius, toRadians(-52))
-    const frontBottom = polarToCartesian(frontRadius, toRadians(52))
-    const backTop: [number, number] = [frontTop[0] - depth, frontTop[1] * (backRadius / frontRadius)]
-    const backBottom: [number, number] = [frontBottom[0] - depth, frontBottom[1] * (backRadius / frontRadius)]
-    return `M ${backTop[0]} ${backTop[1]} L ${frontTop[0]} ${frontTop[1]} L ${frontBottom[0]} ${frontBottom[1]} L ${backBottom[0]} ${backBottom[1]} Z`
-  }
-
-  const buildBevelBackPath = (radius: number, depth: number): string => {
-    if (!Number.isFinite(radius) || radius <= 0) return ''
-    const rx = radius * 0.58
-    const ry = radius * 0.9
-    return `M ${-depth + rx} 0 A ${rx} ${ry} 0 1 0 ${-depth - rx} 0 A ${rx} ${ry} 0 1 0 ${-depth + rx} 0 Z`
-  }
   const lengthValue = (value: number, decimals = 2): string =>
     Number.isFinite(value) ? formatNumber(fromMillimeters(value, unit), decimals) : '—'
 
   $: isRing = selectedGear?.key === 'ring'
   $: isWorm = selectedGear?.key === 'worm'
   $: isBevel = selectedGear?.key === 'bevel'
+  $: isHelical = selectedGear?.key === 'helical'
   $: pitchDiameter = results?.pitchDiameter
   $: outsideDiameter = results?.outsideDiameter
   $: rootDiameter = results?.rootDiameter
@@ -159,25 +78,11 @@
   $: rootRadius = Number.isFinite(rootDiameter) ? rootDiameter / 2 : NaN
   $: baseRadius = Number.isFinite(baseCircle) ? baseCircle / 2 : NaN
   $: maxRadius = Math.max(pitchRadius || 0, outsideRadius || 0, rootRadius || 0, baseRadius || 0)
-  $: wormPitchDiameter = typeof results?.pitchDiameterWorm === 'number' ? results.pitchDiameterWorm : NaN
-  $: wormPitchRadius = Number.isFinite(wormPitchDiameter) ? wormPitchDiameter / 2 : NaN
-  $: wormWheelRadius = Number.isFinite(outsideRadius) ? outsideRadius : pitchRadius
-  $: wormBodyRadius = Number.isFinite(wormPitchRadius) ? Math.max(wormPitchRadius * 0.52, 7) : Math.max(maxRadius * 0.24, 7)
-  $: wormBodyLength = Math.max(wormBodyRadius * 7.8, maxRadius * 1.8)
-  $: wormBodyX = -wormBodyLength * 0.72
-  $: wormBodyY = -wormBodyRadius
-  $: wormWheelX = wormBodyX + wormBodyLength + wormBodyRadius + Math.max(gearDepth * 0.5, 6) + wormWheelRadius
-  $: wormWheelToothCount = Number.isFinite(teethCount) ? Math.round(teethCount) : 12
-  $: wormHelixPaths = buildWormHelixSidePath(wormBodyX, wormBodyY, wormBodyLength, wormBodyRadius, wormStarts)
-  $: wormWheelRimTicks = buildWormWheelRimTicks(wormWheelRadius, wormWheelToothCount)
-  $: wormContactPath = buildWormContactPath(wormBodyX + wormBodyLength, wormWheelX - wormWheelRadius, 0)
-  $: holeBaseRadius = Number.isFinite(rootRadius) ? rootRadius : pitchRadius
-  $: centerHoleRadius = Number.isFinite(holeBaseRadius)
-    ? Math.max(holeBaseRadius * 0.18, maxRadius * 0.05)
-    : maxRadius * 0.08
+  $: refExtent = maxRadius > 0 ? maxRadius * 1.08 : 0
   $: helixAngleDeg = typeof inputs?.helixAngleDeg === 'number' ? inputs.helixAngleDeg : NaN
   $: wormStarts = typeof inputs?.wormStarts === 'number' ? inputs.wormStarts : NaN
-  $: visualModeLabel = isRing ? 'Internal gear' : isWorm ? 'Worm set' : isBevel ? 'Bevel gear' : selectedGear?.key === 'helical' ? 'Helical gear' : 'Spur gear'
+  $: visualModeLabel = isRing ? 'Internal gear' : isWorm ? 'Worm set' : isBevel ? 'Bevel gear' : isHelical ? 'Helical gear' : 'Spur gear'
+
   $: outlinePath = buildGearOutline({
     teeth: Number.isFinite(teethCount) ? teethCount : NaN,
     pitchRadius,
@@ -186,61 +91,45 @@
     baseRadius,
     ring: isRing
   })
-  $: gearDepth = Math.max(maxRadius * 0.16, 8)
-  $: faceOffsetX = isRing ? -gearDepth * 0.45 : gearDepth * 0.5
-  $: faceOffsetY = -gearDepth * 0.34
-  $: wormViewWidth = Math.max(wormBodyLength + wormWheelRadius * 2.6 + wormBodyRadius * 3.2, 240)
-  $: wormViewHeight = Math.max(wormWheelRadius * 2.5, wormBodyRadius * 5.4, 140)
-  $: legendItems = [
-    {
-      key: 'outside',
-      code: 'da',
-      label: `Outside`,
-      diameter: outsideDiameter,
-      value: outsideRadius
-    },
-    {
-      key: 'pitch',
-      code: 'd',
-      label: `Pitch`,
-      diameter: pitchDiameter,
-      value: pitchRadius
-    },
-    {
-      key: 'root',
-      code: 'df',
-      label: `Root`,
-      diameter: rootDiameter,
-      value: rootRadius
-    },
-    {
-      key: 'base',
-      code: 'db',
-      label: `Base`,
-      diameter: baseCircle,
-      value: baseRadius
-    }
-  ].filter((item) => Number.isFinite(item.value) && item.value > 0)
+
+  $: holeBaseRadius = Number.isFinite(rootRadius) ? rootRadius : pitchRadius
+  $: centerHoleRadius = Number.isFinite(holeBaseRadius) ? Math.max(holeBaseRadius * 0.16, maxRadius * 0.05) : maxRadius * 0.08
+  $: centerDotRadius = Math.max(maxRadius * 0.012, 1.2)
+  $: showAddRootCircles = !isWorm && !isRing
+  $: helixHatch = isHelical ? buildHelixHatch(outsideRadius || pitchRadius || maxRadius, helixAngleDeg, Math.max(6, Math.round((teethCount || 12) / 3))) : []
+
+  // ---- worm set layout: wheel centred at origin, worm tangent across its top ----
+  $: wormPitchDiameter = typeof results?.pitchDiameterWorm === 'number' ? results.pitchDiameterWorm : NaN
+  $: wormPitchRadius = Number.isFinite(wormPitchDiameter) ? wormPitchDiameter / 2 : NaN
+  $: wormWheelRadius = Number.isFinite(outsideRadius) ? outsideRadius : pitchRadius
+  $: wormBodyRadius = Number.isFinite(wormPitchRadius) ? Math.max(wormPitchRadius * 0.62, 7) : Math.max(maxRadius * 0.26, 7)
+  $: wormBodyLength = Math.max(wormWheelRadius * 2.4, wormBodyRadius * 6.5)
+  $: wormShaftLength = wormBodyRadius * 1.4
+  $: wormShaftRadius = wormBodyRadius * 0.42
+  // the worm meshes at the top of the wheel: its underside drops to the wheel pitch line
+  $: wormCenterY = -((Number.isFinite(pitchRadius) ? pitchRadius : wormWheelRadius) + wormBodyRadius * 0.92)
+  $: wormThreadLines = buildWormThreadLines(-wormBodyLength / 2, wormBodyLength, wormBodyRadius, wormStarts)
+  $: wormWheelPitchRadius = pitchRadius
+  $: wormWheelBore = Math.max((rootRadius || wormWheelRadius) * 0.22, wormWheelRadius * 0.14)
+
+  $: wormHalfWidth = Math.max(wormBodyLength / 2 + wormShaftLength + wormBodyRadius, wormWheelRadius) * 1.08
+  $: wormTop = wormCenterY - wormBodyRadius * 1.5
+  $: wormBottom = wormWheelRadius * 1.12
   $: view = isWorm
-    ? {
-        viewBox: [-wormViewWidth / 2, -wormViewHeight / 2, wormViewWidth, wormViewHeight].join(' ')
-      }
-    : scaleToViewBox(maxRadius, Math.max(maxRadius * 0.22, 28))
-  $: backOutlineTransform = `translate(${faceOffsetX} ${faceOffsetY})`
-  $: helicalFaceLines = selectedGear?.key === 'helical' ? buildHelicalFaceLines(outsideRadius || pitchRadius || maxRadius, helixAngleDeg, Math.max(5, Math.round((teethCount || 12) / 4))) : []
-  $: toothValleyLines = !isWorm && !isBevel && !isRing ? buildToothValleyLines(outsideRadius || pitchRadius || maxRadius, Math.round(teethCount || 12), selectedGear?.key === 'helical') : []
-  $: faceGradientId = makeSvgId('face-gradient')
-  $: sideGradientId = makeSvgId('side-gradient')
-  $: coreGradientId = makeSvgId('core-gradient')
-  $: ringGradientId = makeSvgId('ring-gradient')
+    ? { viewBox: [-wormHalfWidth, wormTop, wormHalfWidth * 2, wormBottom - wormTop].join(' ') }
+    : scaleToViewBox(maxRadius, Math.max(maxRadius * 0.18, 24))
+  $: wormAspect = isWorm ? (wormHalfWidth * 2) / (wormBottom - wormTop) : 1
+
   $: wormClipId = makeSvgId('worm-clip')
-  $: wormWheelClipId = makeSvgId('worm-wheel-clip')
-  $: helicalClipId = makeSvgId('helical-clip')
-  $: bevelFrontRadius = Number.isFinite(outsideRadius) ? outsideRadius : maxRadius
-  $: bevelBackRadius = Math.max(bevelFrontRadius * 0.58, 6)
-  $: bevelDepth = Math.max(bevelFrontRadius * 0.52, 12)
-  $: bevelSidePath = buildBevelSidePath(bevelFrontRadius, bevelBackRadius, bevelDepth)
-  $: bevelBackPath = buildBevelBackPath(bevelBackRadius, bevelDepth)
+  $: helixClipId = makeSvgId('helix-clip')
+
+  $: legendItems = [
+    { key: 'outside', code: 'da', label: 'Outside', diameter: outsideDiameter, value: outsideRadius },
+    { key: 'pitch', code: 'd', label: 'Pitch', diameter: pitchDiameter, value: pitchRadius },
+    { key: 'root', code: 'df', label: 'Root', diameter: rootDiameter, value: rootRadius },
+    { key: 'base', code: 'db', label: 'Base', diameter: baseCircle, value: baseRadius }
+  ].filter((item) => Number.isFinite(item.value) && item.value > 0)
+
   $: hasShape = maxRadius > 0 && (isWorm || outlinePath)
 </script>
 
@@ -250,136 +139,82 @@
     <span class="badge">{visualModeLabel}</span>
   </div>
   {#if hasShape}
-    <svg
-      class:worm-mode={isWorm}
-      class="gear"
-      viewBox={view.viewBox}
-      aria-label={visualModeLabel}
-      role="img"
-    >
+    <svg class:worm-mode={isWorm} class="gear" viewBox={view.viewBox} style={isWorm ? `aspect-ratio: ${wormAspect};` : ''} aria-label={visualModeLabel} role="img">
       <defs>
-        <linearGradient id={faceGradientId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#c6d2ef" />
-          <stop offset="45%" stop-color="#8fa3cd" />
-          <stop offset="100%" stop-color="#4b5f88" />
-        </linearGradient>
-        <linearGradient id={sideGradientId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#32415f" />
-          <stop offset="100%" stop-color="#1b263b" />
-        </linearGradient>
-        <radialGradient id={coreGradientId} cx="40%" cy="35%" r="70%">
-          <stop offset="0%" stop-color="#eef4ff" stop-opacity="0.95" />
-          <stop offset="60%" stop-color="#9eb2dc" stop-opacity="0.9" />
-          <stop offset="100%" stop-color="#55698e" stop-opacity="0.92" />
-        </radialGradient>
-        <radialGradient id={ringGradientId} cx="50%" cy="45%" r="70%">
-          <stop offset="0%" stop-color="#6f84ad" stop-opacity="0.82" />
-          <stop offset="100%" stop-color="#24324b" stop-opacity="0.98" />
-        </radialGradient>
-        {#if selectedGear?.key === 'helical'}
-          <clipPath id={helicalClipId}>
+        {#if isHelical}
+          <clipPath id={helixClipId}>
             <path d={outlinePath} />
           </clipPath>
         {/if}
         {#if isWorm}
           <clipPath id={wormClipId}>
-            <rect
-              x={wormBodyX}
-              y={wormBodyY}
-              width={wormBodyLength}
-              height={wormBodyRadius * 2}
-              rx={wormBodyRadius}
-              ry={wormBodyRadius}
-            />
-          </clipPath>
-          <clipPath id={wormWheelClipId}>
-            <ellipse rx={wormWheelRadius * 0.82} ry={wormWheelRadius} />
+            <rect x={-wormBodyLength / 2} y={-wormBodyRadius} width={wormBodyLength} height={wormBodyRadius * 2} rx={wormBodyRadius} ry={wormBodyRadius} />
           </clipPath>
         {/if}
       </defs>
+
       {#if isWorm}
-        <path d={wormContactPath} class="worm-contact" />
-        <g class="worm">
-          <rect
-            x={wormBodyX + gearDepth * 0.22}
-            y={wormBodyY - gearDepth * 0.2}
-            width={wormBodyLength}
-            height={wormBodyRadius * 2}
-            rx={wormBodyRadius}
-            ry={wormBodyRadius}
-            class="worm-shadow"
-          />
-          <rect
-            x={wormBodyX}
-            y={wormBodyY}
-            width={wormBodyLength}
-            height={wormBodyRadius * 2}
-            rx={wormBodyRadius}
-            ry={wormBodyRadius}
-            class="worm-shell"
-            style={`fill: url(#${faceGradientId});`}
-          />
-          <g clip-path={`url(#${wormClipId})`} class="worm-grooves">
-            {#each wormHelixPaths as helixPath}
-              <path d={helixPath} />
-            {/each}
-          </g>
-          <line x1={wormBodyX + wormBodyRadius * 0.5} y1={0} x2={wormBodyX + wormBodyLength - wormBodyRadius * 0.5} y2={0} class="worm-axis-line" />
-          <circle class="axis" r={wormBodyRadius * 0.18} />
+        <!-- worm wheel (toothed gear, front view) centred at origin -->
+        <g class="worm-wheel">
+          <line x1={-wormWheelRadius * 1.15} y1="0" x2={wormWheelRadius * 1.15} y2="0" class="centerline" />
+          <line x1="0" y1={-wormWheelRadius * 1.15} x2="0" y2={wormWheelRadius * 1.15} class="centerline" />
+          {#if Number.isFinite(wormWheelPitchRadius) && wormWheelPitchRadius > 0}
+            <circle r={wormWheelPitchRadius} class="ref-pitch" />
+          {/if}
+          <path d={outlinePath} class="gear-outline" />
+          {#if Number.isFinite(wormWheelBore) && wormWheelBore > 0}
+            <circle r={wormWheelBore} class="bore" />
+          {/if}
         </g>
-        <g class="worm-wheel" transform={`translate(${wormWheelX} 0)`}>
-          <ellipse rx={wormWheelRadius + gearDepth * 0.28} ry={wormWheelRadius * 0.92} class="shadow-disc wheel-shadow" />
-          <ellipse rx={wormWheelRadius * 0.82} ry={wormWheelRadius} class="worm-wheel-outline" style={`fill: url(#${coreGradientId});`} />
-          <g class="worm-wheel-rim">
-            {#each wormWheelRimTicks as tickPath}
-              <path d={tickPath} />
+        <!-- worm: horizontal threaded cylinder tangent across the top of the wheel -->
+        <g class="worm" transform={`translate(0 ${wormCenterY})`}>
+          <line x1={-wormBodyLength / 2 - wormShaftLength} y1="0" x2={wormBodyLength / 2 + wormShaftLength} y2="0" class="centerline" />
+          <rect x={-wormBodyLength / 2 - wormShaftLength} y={-wormShaftRadius} width={wormShaftLength} height={wormShaftRadius * 2} class="worm-shaft" />
+          <rect x={wormBodyLength / 2} y={-wormShaftRadius} width={wormShaftLength} height={wormShaftRadius * 2} class="worm-shaft" />
+          <rect x={-wormBodyLength / 2} y={-wormBodyRadius} width={wormBodyLength} height={wormBodyRadius * 2} rx={wormBodyRadius * 0.35} ry={wormBodyRadius * 0.35} class="outline" />
+          <g clip-path={`url(#${wormClipId})`} class="thread">
+            {#each wormThreadLines as threadPath}
+              <path d={threadPath} />
             {/each}
           </g>
-          <ellipse rx={Math.max((rootRadius || wormWheelRadius) * 0.42, wormWheelRadius * 0.22)} ry={Math.max((rootRadius || wormWheelRadius) * 0.3, wormWheelRadius * 0.16)} class="wheel-core" />
         </g>
       {:else}
-        {#if isBevel}
-          <g class="bevel-gear">
-            {#if bevelBackPath}
-              <path d={bevelBackPath} class="bevel-back" style={`fill: url(#${sideGradientId});`} />
-            {/if}
-            {#if bevelSidePath}
-              <path d={bevelSidePath} class="bevel-side" style={`fill: url(#${sideGradientId});`} />
-            {/if}
-            <path d={outlinePath} class="gear-front bevel-front" style={`fill: url(#${coreGradientId});`} />
-            {#if Number.isFinite(centerHoleRadius) && centerHoleRadius > 0}
-              <ellipse cx="0" cy="0" rx={centerHoleRadius * 0.92} ry={centerHoleRadius * 0.66} class="center-hole bevel-hole" />
-            {/if}
-          </g>
-        {:else}
-          <g class="gear-stack">
-            <g transform={backOutlineTransform} class="gear-back-layer">
-              <path d={outlinePath} class={`gear-back ${isRing ? 'is-ring-back' : ''}`} style={!isRing ? `fill: url(#${sideGradientId});` : undefined} />
-            </g>
-            <path d={outlinePath} class:gear-ring={isRing} class="gear-front" style={`fill: url(#${isRing ? ringGradientId : coreGradientId});`} />
-            {#if toothValleyLines.length}
-              <g class="tooth-valleys">
-                {#each toothValleyLines as valleyPath}
-                  <path d={valleyPath} />
-                {/each}
-              </g>
-            {/if}
-            {#if selectedGear?.key === 'helical'}
-              <g class="helical-flow" clip-path={`url(#${helicalClipId})`}>
-                {#each helicalFaceLines as flowPath}
-                  <path d={flowPath} />
-                {/each}
-              </g>
-            {/if}
-            {#if !isRing && Number.isFinite(centerHoleRadius) && centerHoleRadius > 0}
-              <circle r={centerHoleRadius} class="center-hole" />
-            {/if}
+        <!-- centerlines -->
+        <line x1={-refExtent} y1="0" x2={refExtent} y2="0" class="centerline" />
+        <line x1="0" y1={-refExtent} x2="0" y2={refExtent} class="centerline" />
+
+        <!-- reference circles -->
+        {#if showAddRootCircles}
+          <circle r={outsideRadius} class="ref-solid" />
+          <circle r={rootRadius} class="ref-solid" />
+          {#if Number.isFinite(baseRadius) && baseRadius > 0}
+            <circle r={baseRadius} class="ref-dash" />
+          {/if}
+        {/if}
+        {#if Number.isFinite(pitchRadius) && pitchRadius > 0}
+          <circle r={pitchRadius} class="ref-pitch" />
+        {/if}
+
+        <!-- helix hint -->
+        {#if isHelical && helixHatch.length}
+          <g class="helix-hatch" clip-path={`url(#${helixClipId})`}>
+            {#each helixHatch as hatchPath}
+              <path d={hatchPath} />
+            {/each}
           </g>
         {/if}
-        <circle class="axis" r={Math.max(maxRadius * 0.016, 1.6)} />
-      {/if}
 
+        <!-- gear tooth outline -->
+        <path d={outlinePath} class="gear-outline" class:is-ring={isRing} />
+
+        <!-- bore -->
+        {#if !isRing && Number.isFinite(centerHoleRadius) && centerHoleRadius > 0}
+          <circle r={centerHoleRadius} class="bore" />
+        {/if}
+        <circle r={centerDotRadius} class="center-dot" />
+      {/if}
     </svg>
+
     <div class="legend">
       <p>Dimension results</p>
       <ul class="dimension-results">
@@ -392,7 +227,7 @@
       </ul>
       <div class="legend-meta">
         <span>Render mode</span>
-        <strong>Clean technical 2.5D</strong>
+        <strong>Technical line drawing</strong>
       </div>
     </div>
   {:else}
@@ -443,113 +278,79 @@
     border-radius: 4px;
     border: 1px solid var(--border-1);
   }
-  .gear-back-layer {
-    opacity: 0.54;
-  }
-  .gear-back,
-  .bevel-back,
-  .bevel-side {
-    stroke: rgba(146, 165, 204, 0.2);
-    stroke-width: 0.95;
-    fill-rule: evenodd;
-    vector-effect: non-scaling-stroke;
-  }
-  .gear-front,
-  .worm-wheel-outline,
-  .bevel-front {
-    stroke: #edf3ff;
-    stroke-width: 1.15;
-    fill-rule: evenodd;
-    vector-effect: non-scaling-stroke;
-  }
-  .is-ring-back {
-    fill: #1b263b;
-    stroke: rgba(111, 130, 171, 0.3);
-  }
-  .helical-flow path {
-    fill: none;
-    stroke: rgba(233, 241, 255, 0.22);
-    stroke-width: 0.8;
-    stroke-linecap: round;
-    vector-effect: non-scaling-stroke;
-  }
-  .tooth-valleys path {
-    fill: none;
-    stroke: rgba(18, 27, 44, 0.28);
-    stroke-width: 0.7;
-    stroke-linecap: round;
-    vector-effect: non-scaling-stroke;
-  }
-  .shadow-disc {
-    fill: rgba(12, 18, 31, 0.22);
-  }
-  .wheel-shadow {
-    fill: rgba(12, 18, 31, 0.18);
-  }
-  .wheel-core {
-    fill: #152033;
-    stroke: rgba(228, 237, 255, 0.75);
-    stroke-width: 1.25;
-  }
-  .center-hole {
-    fill: #0a1120;
-    stroke: #d9e4ff;
+  .worm-shaft {
+    fill: rgba(150, 173, 214, 0.13);
+    stroke: #d4e0f7;
     stroke-width: 1.4;
-  }
-  .bevel-hole {
-    fill: #09101d;
-  }
-  .axis {
-    fill: #d9e4ff;
-    opacity: 0.75;
-  }
-  .worm {
-    transform: translateY(0);
-  }
-  .worm-shadow {
-    fill: rgba(10, 17, 32, 0.28);
-    stroke: none;
-  }
-  .worm-shell {
-    stroke: #d9e4ff;
-    stroke-width: 1.05;
     vector-effect: non-scaling-stroke;
   }
-  .worm-grooves path {
-    stroke: #9db0dc;
-    stroke-width: 0.95;
+
+  /* technical line-drawing styles */
+  .gear-outline {
+    fill: rgba(150, 173, 214, 0.13);
+    stroke: #d4e0f7;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+    fill-rule: evenodd;
+    vector-effect: non-scaling-stroke;
+  }
+  .gear-outline.is-ring {
+    fill: rgba(150, 173, 214, 0.13);
+  }
+  .ref-solid {
     fill: none;
-    opacity: 0.88;
+    stroke: rgba(159, 179, 209, 0.4);
+    stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
-  .worm-axis-line {
-    stroke: rgba(231, 239, 255, 0.4);
-    stroke-width: 0.85;
-    stroke-dasharray: 4 4;
-    vector-effect: non-scaling-stroke;
-  }
-  .worm-wheel-rim path {
-    stroke: rgba(237, 243, 255, 0.52);
-    stroke-width: 0.95;
+  .ref-dash {
     fill: none;
+    stroke: rgba(159, 179, 209, 0.32);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
     vector-effect: non-scaling-stroke;
   }
-  .worm-contact {
-    stroke: rgba(196, 213, 248, 0.35);
-    stroke-width: 0.9;
+  .ref-pitch {
     fill: none;
-    stroke-dasharray: 4 4;
+    stroke: #6ea8fe;
+    stroke-width: 1;
+    stroke-dasharray: 7 3 1.5 3;
     vector-effect: non-scaling-stroke;
   }
-  :global(svg.gear.worm-mode) {
-    aspect-ratio: 16 / 9;
+  .centerline {
+    stroke: rgba(159, 179, 209, 0.4);
+    stroke-width: 0.8;
+    stroke-dasharray: 7 3 1.5 3;
+    vector-effect: non-scaling-stroke;
   }
-  .bevel-back {
-    opacity: 0.92;
+  .helix-hatch path {
+    fill: none;
+    stroke: rgba(180, 200, 230, 0.22);
+    stroke-width: 0.8;
+    vector-effect: non-scaling-stroke;
   }
-  .bevel-side {
-    opacity: 0.95;
+  .bore {
+    fill: #0a1120;
+    stroke: #d4e0f7;
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
   }
+  .center-dot {
+    fill: #d4e0f7;
+  }
+  .worm .outline {
+    fill: rgba(150, 173, 214, 0.13);
+    stroke: #d4e0f7;
+    stroke-width: 1.6;
+    vector-effect: non-scaling-stroke;
+  }
+  .worm .thread path {
+    fill: none;
+    stroke: rgba(196, 213, 248, 0.6);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
   .legend {
     border: 1px solid var(--border-1);
     border-radius: var(--radius-sm);
@@ -566,8 +367,7 @@
   .legend-meta {
     margin-top: 0.35rem;
     padding-top: 0.35rem;
-    border-top: 1px solid #e2e8f0;
-    border-top-color: var(--border-1);
+    border-top: 1px solid var(--border-1);
     display: flex;
     justify-content: space-between;
     font-size: 0.76rem;

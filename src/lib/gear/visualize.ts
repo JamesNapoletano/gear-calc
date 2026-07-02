@@ -179,17 +179,109 @@ const buildToothProfile = ({ pitchRadius, outsideRadius, rootRadius, baseRadius,
   }
 }
 
+const appendQuadPoints = (points: Point[], p0: Point, pc: Point, p1: Point, steps: number): void => {
+  for (let i = 1; i <= steps; i += 1) {
+    const t = i / steps
+    const u = 1 - t
+    points.push([
+      u * u * p0[0] + 2 * u * t * pc[0] + t * t * p1[0],
+      u * u * p0[1] + 2 * u * t * pc[1] + t * t * p1[1]
+    ])
+  }
+}
+
 const buildSpurOrHelicalOutline = ({ teeth, pitchRadius, outsideRadius, rootRadius, baseRadius }: OutlineInput): string => {
-  const profile = buildToothProfile({
-    teeth,
-    pitchRadius,
-    outsideRadius,
-    rootRadius,
-    baseRadius
-  })
-  if (!profile) return ''
+  if (
+    !isFinitePositive(pitchRadius) ||
+    !isFinitePositive(outsideRadius) ||
+    !isFinitePositive(rootRadius) ||
+    !isFinitePositive(baseRadius) ||
+    !isFinitePositive(teeth)
+  ) {
+    return ''
+  }
+
+  const z = Math.max(6, Math.round(teeth))
+  const tau = (Math.PI * 2) / z
+  const halfThickness = Math.PI / (2 * z)
+  const rb = baseRadius
+  const ra = outsideRadius
+  const rr = rootRadius
+  const rp = pitchRadius
+
+  // The involute is only defined from the base circle outward. When the root sits
+  // below the base circle (true for standard ≥20° gears), the span between them is
+  // bridged by a tangent fillet so the tooth blends smoothly into the root — no notch.
+  const startRadius = Math.max(rb, rr)
+  const tStart = involuteTAtRadius(rb, startRadius)
+  const tTip = involuteTAtRadius(rb, ra)
+  const tPitch = involuteTAtRadius(rb, rp)
+  // The flank must converge toward the tooth centre as radius grows so the tooth is
+  // thickest at the root and tapers to the tip (real involute behaviour). That means the
+  // +angle (right) flank is the *mirrored* involute and the rotation adds the pitch roll.
+  const flankRot = halfThickness + angleOf(involutePoint(rb, tPitch))
+
+  const flankSteps = 16
+  const right: Point[] = []
+  const left: Point[] = []
+  for (let i = 0; i <= flankSteps; i += 1) {
+    const t = tStart + (tTip - tStart) * (i / flankSteps)
+    const p = involutePoint(rb, t)
+    right.push(rotate([p[0], -p[1]], flankRot))
+    left.push(rotate(p, -flankRot))
+  }
+
+  const baseOffset = angleOf(right[0])
+  // Tip angular offsets measured at the tooth-centre orientation (near 0), so the
+  // top-land arc never straddles the ±π atan2 seam — using angleOf() on the already
+  // rotated tips makes the tooth at ~180° sweep the wrong way around the whole gear.
+  const tipOffsetLeft = angleOf(left[flankSteps])
+  const tipOffsetRight = angleOf(right[flankSteps])
+  const filletGap = rr < startRadius ? tau * 0.12 : 0
+  const P = (radius: number, angle: number): Point => polarToCartesian(radius, angle)
 
   const points: Point[] = []
+  for (let i = 0; i < z; i += 1) {
+    const c = i * tau
+    const leftBase = c - baseOffset
+    const rightBase = c + baseOffset
+    const leftRoot = leftBase - filletGap
+    const rightRoot = rightBase + filletGap
+    const leftRotated = left.map((p) => rotate(p, c))
+    const rightRotated = right.map((p) => rotate(p, c))
+
+    if (i === 0) points.push(P(rr, leftRoot))
+
+    // fillet (or straight wall) up from the root into the left flank base
+    if (filletGap > 0) appendQuadPoints(points, P(rr, leftRoot), P(rr, leftBase), P(startRadius, leftBase), 3)
+    else points.push(P(startRadius, leftBase))
+
+    points.push(...leftRotated) // left flank, base → tip
+    appendArcPoints(points, ra, c + tipOffsetLeft, c + tipOffsetRight, 6) // top land
+    for (let k = flankSteps; k >= 0; k -= 1) points.push(rightRotated[k]) // right flank, tip → base
+
+    // fillet (or straight wall) down from the right flank base into the root
+    if (filletGap > 0) appendQuadPoints(points, P(startRadius, rightBase), P(rr, rightBase), P(rr, rightRoot), 3)
+    else points.push(P(rr, rightRoot))
+
+    appendArcPoints(points, rr, rightRoot, leftRoot + tau, 6) // root land across the gap
+  }
+
+  return toPath(points)
+}
+
+const buildRingInvoluteOutline = ({ teeth, pitchRadius, outsideRadius, rootRadius, baseRadius }: OutlineInput): string => {
+  if (!isFinitePositive(teeth) || !isFinitePositive(pitchRadius) || !isFinitePositive(outsideRadius) || !isFinitePositive(rootRadius) || !isFinitePositive(baseRadius)) {
+    return ''
+  }
+
+  // Ring gear: outsideRadius = inner tip (< pitch), rootRadius = outer rim (> pitch)
+  // buildToothProfile handles this because involuteStartRadius = max(base, root) = outer rim,
+  // and the involute iterates from large t (outer rim) down to small t (inner tip), giving inward-pointing flanks.
+  const profile = buildToothProfile({ teeth, pitchRadius, outsideRadius, rootRadius, baseRadius })
+  if (!profile) return ''
+
+  const innerPoints: Point[] = []
   const z = profile.teeth
   const tau = profile.toothPitchAngle
 
@@ -201,52 +293,16 @@ const buildSpurOrHelicalOutline = ({ teeth, pitchRadius, outsideRadius, rootRadi
     const root = profile.rootArc.map((p) => rotate(p, rot))
 
     if (i === 0) {
-      points.push(right[0])
+      innerPoints.push(right[0])
     }
-    points.push(...right)
-    points.push(...tip)
-    points.push(...left.reverse())
-    points.push(...root)
-  }
-
-  return toPath(points)
-}
-
-const buildRingOutline = ({ teeth, pitchRadius, outsideRadius, rootRadius }: OutlineInput): string => {
-  if (!isFinitePositive(teeth) || !isFinitePositive(pitchRadius) || !isFinitePositive(outsideRadius) || !isFinitePositive(rootRadius)) {
-    return ''
-  }
-
-  const z = Math.max(8, Math.round(teeth))
-  const tau = (Math.PI * 2) / z
-  const toothTipRadius = Math.min(outsideRadius, pitchRadius * 0.985)
-  const toothRootRadius = Math.max(rootRadius, pitchRadius * 1.04)
-  const ringOuterRadius = Math.max(toothRootRadius * 1.12, pitchRadius * 1.2)
-  const tipSpan = tau * 0.38
-  const rootSpan = tau * 0.72
-  const tipSteps = 6
-  const rootSteps = 6
-  const innerPoints: Point[] = []
-
-  for (let i = 0; i < z; i += 1) {
-    const center = i * tau
-    const leftRootAngle = center - rootSpan / 2
-    const leftTipAngle = center - tipSpan / 2
-    const rightTipAngle = center + tipSpan / 2
-    const rightRootAngle = center + rootSpan / 2
-    const nextLeftRootAngle = center + tau - rootSpan / 2
-
-    if (i === 0) {
-      innerPoints.push(polarToCartesian(toothRootRadius, leftRootAngle))
-    }
-
-    innerPoints.push(polarToCartesian(toothTipRadius, leftTipAngle))
-    appendArcPoints(innerPoints, toothTipRadius, leftTipAngle, rightTipAngle, tipSteps)
-    innerPoints.push(polarToCartesian(toothRootRadius, rightRootAngle))
-    appendArcPoints(innerPoints, toothRootRadius, rightRootAngle, nextLeftRootAngle, rootSteps)
+    innerPoints.push(...right)
+    innerPoints.push(...tip)
+    innerPoints.push(...left.reverse())
+    innerPoints.push(...root)
   }
 
   const innerPath = toPath(innerPoints)
+  const ringOuterRadius = rootRadius * 1.14
   const outerPath = circlePath(ringOuterRadius)
   return `${outerPath} ${innerPath}`.trim()
 }
@@ -320,7 +376,7 @@ export const buildGearOutline = ({
   const base = isFinitePositive(baseRadius ?? NaN) ? baseRadius! : pitchRadius * 0.94
 
   if (ring) {
-    return buildRingOutline({
+    return buildRingInvoluteOutline({
       teeth,
       pitchRadius,
       outsideRadius: Math.min(outer, pitchRadius * 0.995),
